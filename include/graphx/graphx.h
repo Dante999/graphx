@@ -36,12 +36,10 @@ enum graphx_color graphx_get_pixel(const struct graphx_data *data, uint16_t x, u
 
 void graphx_fill(struct graphx_data *data, enum graphx_color color);
 void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum graphx_color color);
-/*
-void graphx_draw_hline(size_t x, size_t y, size_t width, uint8_t color);
-void graphx_draw_vline(uint8_t x, uint8_t y, uint8_t height, uint8_t color);
-void graphx_draw_rect(uint8_t x0, uint8_t x1, uint8_t y0, uint8_t y1,
-                      uint8_t color);
-*/
+void graphx_draw_hline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, enum graphx_color color);
+void graphx_draw_vline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t height, enum graphx_color color);
+void graphx_draw_rect(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, uint16_t height, enum graphx_color color);
+
 
 
 /* *****************************************************************************
@@ -127,6 +125,30 @@ void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum gr
 	}
 }
 
+void graphx_draw_hline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, enum graphx_color color)
+{
+	for (uint16_t i = 0; i <= width; ++i) {
+		graphx_draw_pixel(data, x + i, y, color);
+	}
+}
+
+void graphx_draw_vline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t height, enum graphx_color color)
+{
+	for (uint16_t i = 0; i <= height; i++) {
+		graphx_draw_pixel(data, x, y + i, color);
+	}
+}
+
+void graphx_draw_rect(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, uint16_t height, enum graphx_color color)
+{
+	graphx_draw_hline(data, x         , y         , width, color);
+	graphx_draw_hline(data, x         , y + height, width, color);
+	graphx_draw_vline(data, x         , y         , width, color);
+	graphx_draw_vline(data, x + height, y         , width, color);
+}
+
+
+//
 //void graphx_draw_char(const uint8_t font[], uint8_t x, uint8_t y, const char c)
 //{
 //	const uint8_t font_width  = font_get_width(font);
@@ -159,33 +181,6 @@ void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum gr
 //	for (uint8_t i = 0; i < strlen(s); i++) {
 //		graphx_draw_char(font, x + (i * (font_width + 1)), y, s[i]);
 //	}
-//}
-//
-//void graphx_draw_hline(uint8_t x0, uint8_t x1, uint8_t y, uint8_t color)
-//{
-//	uint8_t delta = x1 - x0;
-//
-//	for (uint8_t i = 0; i <= delta; i++) {
-//		graphx_draw_pixel(x0 + i, y, color);
-//	}
-//}
-//
-//void graphx_draw_vline(uint8_t x, uint8_t y0, uint8_t y1, uint8_t color)
-//{
-//	uint8_t delta = y1 - y0;
-//
-//	for (uint8_t i = 0; i <= delta; i++) {
-//		graphx_draw_pixel(x, y0 + i, color);
-//	}
-//}
-//
-//void graphx_draw_rect(uint8_t x0, uint8_t x1, uint8_t y0, uint8_t y1,
-//                      uint8_t color)
-//{
-//	graphx_draw_hline(x0, x1, y0, color);
-//	graphx_draw_hline(x0, x1, y1, color);
-//	graphx_draw_vline(x0, y0, y1, color);
-//	graphx_draw_vline(x1, y0, y1, color);
 //}
 //
 
