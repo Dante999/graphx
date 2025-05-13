@@ -1,0 +1,2 @@
+all:
+	${CC} -I../include main.c -o graphx-demo `sdl2-config --cflags --libs`

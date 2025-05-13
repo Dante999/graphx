@@ -1,3 +1,3 @@
 def Settings( **kwargs ):
-  return { 'flags': ['-Wall', 'Wextra', '-Wpedantic', '-Iinclude'] }
+  return { 'flags': ['-Wall', 'Wextra', '-Wpedantic', '-Iinclude', '-I/usr/include/SDL2'] }
 
