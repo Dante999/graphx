@@ -6,6 +6,7 @@
  ******************************************************************************/
 #include <stddef.h>
 #include <stdint.h>
+#include <assert.h>
 
 #define GRAPHX_BUFFER_SIZE(width,height)   (width * (height / 8))
 
@@ -39,7 +40,8 @@ void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum gr
 void graphx_draw_hline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, enum graphx_color color);
 void graphx_draw_vline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t height, enum graphx_color color);
 void graphx_draw_rect(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, uint16_t height, enum graphx_color color);
-
+void graphx_draw_char(struct graphx_data *data,const uint8_t *font, uint16_t x, uint16_t y, char c, enum graphx_color color);
+void graphx_draw_string(struct graphx_data *data,const uint8_t *font, uint16_t x, uint16_t y, const char *s, enum graphx_color color);
 
 
 /* *****************************************************************************
@@ -48,6 +50,19 @@ void graphx_draw_rect(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t
 #ifdef GRAPHX_IMPLEMENTATION
 
 #include <string.h>
+
+#define FONT_IMPLEMENTATION
+#include "font.h"
+
+static void graphx_draw_byte(struct graphx_data *data, uint16_t x, uint16_t y,
+	uint8_t byte, enum graphx_color fg_color, enum graphx_color bg_color)
+{
+	for (uint8_t j = 0; j < 8; j++) {
+		enum graphx_color color = (byte & (1 << j)) ? fg_color : bg_color;
+		graphx_draw_pixel(data, x, y + j, color);
+	}
+}
+
 
 static uint16_t graphx_get_buffer_offset(const struct graphx_data *data, uint16_t x, uint16_t y)
 {
@@ -106,6 +121,9 @@ enum graphx_color graphx_get_pixel(const struct graphx_data *data, uint16_t x, u
 
 void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum graphx_color color)
 {
+	assert(x < data->width);
+	assert(y < data->height);
+
 	const uint8_t  y_bit  = y % 8;
 	const uint16_t offset = graphx_get_buffer_offset(data, x, y);
 
@@ -141,48 +159,74 @@ void graphx_draw_vline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_
 
 void graphx_draw_rect(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, uint16_t height, enum graphx_color color)
 {
-	graphx_draw_hline(data, x         , y         , width, color);
-	graphx_draw_hline(data, x         , y + height, width, color);
-	graphx_draw_vline(data, x         , y         , width, color);
-	graphx_draw_vline(data, x + height, y         , width, color);
+	graphx_draw_hline(data, x         , y         , width , color);
+	graphx_draw_hline(data, x         , y + height, width , color);
+	graphx_draw_vline(data, x         , y         , height, color);
+	graphx_draw_vline(data, x + width , y         , height, color);
 }
 
 
-//
-//void graphx_draw_char(const uint8_t font[], uint8_t x, uint8_t y, const char c)
-//{
-//	const uint8_t font_width  = font_get_width(font);
-//	const uint8_t font_height = font_get_height(font);
-//
-//	uint8_t  char_index  = (uint8_t)(c - 0x20);
-//	uint16_t start_index = char_index * font_width;
-//
-//	for (uint8_t row = 0; row < (font_height / 8); row++) {
-//
-//		uint16_t row_offset = row * font_width;
-//
-//		for (uint8_t col = 0; col < font_width; col++) {
-//
-//			uint16_t i_new = start_index + row_offset + col;
-//			uint8_t  x_new = x + col;
-//			uint8_t  y_new = y + (row * 8);
-//
-//			graphx_draw_byte(x_new, y_new,
-//			                 font_get_byte(font, i_new));
-//		}
-//	}
-//}
-//
-//void graphx_draw_string(const uint8_t font[], uint8_t x, uint8_t y,
-//                        const char *s)
-//{
-//	const uint8_t font_width = font_get_width(font);
-//
-//	for (uint8_t i = 0; i < strlen(s); i++) {
-//		graphx_draw_char(font, x + (i * (font_width + 1)), y, s[i]);
-//	}
-//}
-//
+void graphx_draw_char(
+	struct graphx_data *data,
+	const uint8_t *font,
+	uint16_t x,
+	uint16_t y,
+	char c,
+	enum graphx_color color)
+{
+	enum graphx_color fg_color = GRAPHX_COLOR_BLACK;
+	enum graphx_color bg_color = GRAPHX_COLOR_WHITE;
+
+	switch(color) {
+	case GRAPHX_COLOR_BLACK:
+		// already set
+		 break;
+	case GRAPHX_COLOR_WHITE:
+		 fg_color = GRAPHX_COLOR_WHITE;
+		 bg_color = GRAPHX_COLOR_BLACK;
+		 break;
+	case GRAPHX_COLOR_TOGGLE:
+		fg_color = GRAPHX_COLOR_TOGGLE;
+		fg_color = GRAPHX_COLOR_TOGGLE;
+		break;
+	}
+
+	const uint8_t font_width  = font_get_width(font);
+	const uint8_t font_height = font_get_height(font);
+
+	uint8_t  char_index  = (uint8_t)(c - 0x20);
+	uint16_t start_index = char_index * font_width;
+
+	for (uint16_t row = 0; row < (font_height / 8); row++) {
+
+		uint16_t row_offset = row * font_width;
+
+		for (uint16_t col = 0; col < font_width; col++) {
+
+			uint16_t i_new = start_index + row_offset + col;
+			uint8_t  x_new = x + col;
+			uint8_t  y_new = y + (row * 8);
+
+			graphx_draw_byte(data, x_new, y_new,
+				font_get_byte(font, i_new), fg_color, bg_color);
+		}
+	}
+}
+
+void graphx_draw_string(
+	struct graphx_data *data,
+	const uint8_t *font,
+	uint16_t x,
+	uint16_t y,
+	const char *s,
+	enum graphx_color color)
+{
+	const uint8_t font_width = font_get_width(font);
+
+	for (uint8_t i = 0; i < strlen(s); i++) {
+		graphx_draw_char(data, font, x + (i * (font_width + 1)), y, s[i], color);
+	}
+}
 
 #endif // GRAPHX_IMPLEMENTATION
 

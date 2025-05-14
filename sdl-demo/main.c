@@ -1,37 +1,56 @@
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #include <SDL.h>
 
 #define GRAPHX_IMPLEMENTATION
 #include "graphx/graphx.h"
+#include "graphx/font5x7.h"
 
 // Define MAX and MIN macros
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 // Define screen dimensions
-#define SCREEN_WIDTH    800
-#define SCREEN_HEIGHT   600
-#define RENDER_SCALE    1.0f
+#define GFX_WIDTH  128
+#define GFX_HEIGHT  64
+#define GFX_SIZE   (GRAPHX_BUFFER_SIZE(GFX_WIDTH, GFX_HEIGHT))
+
+
+#define RENDER_SCALE    10.0f
+#define SCREEN_WIDTH    (GFX_WIDTH * RENDER_SCALE)
+#define SCREEN_HEIGHT   (GFX_HEIGHT * RENDER_SCALE)
+
+
+static void check_sdl(int sdl_error)
+{
+	if (sdl_error != 0) {
+		fprintf(stderr, "SDL_ERROR: %s\n", SDL_GetError());
+		exit(EXIT_FAILURE);
+	}
+}
+
 
 static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 {
 	graphx_fill(gfx_data, GRAPHX_COLOR_WHITE);
 
-	// TODO: rect is garbage in this demo
-	graphx_draw_rect(gfx_data, 0, 0, gfx_data->width, gfx_data->height, GRAPHX_COLOR_BLACK);
+	graphx_draw_rect(gfx_data, 0, 0, gfx_data->width-1, gfx_data->height-1, GRAPHX_COLOR_BLACK);
 
 	for (uint16_t i=0; i < 50; ++i) {
 		graphx_draw_pixel(gfx_data, i, i, GRAPHX_COLOR_BLACK);
 	}
 
+	graphx_draw_char(gfx_data, font5x7, 10, 30, 'C', GRAPHX_COLOR_BLACK);
+	graphx_draw_string(gfx_data, font5x7, 10, 40, "Hello World!", GRAPHX_COLOR_BLACK);
 }
 
 static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx_data)
 {
-	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0x00, 0xFF);
+	SDL_SetRenderDrawColor(renderer, 0x2F, 0x0F, 0x0F, 0xFF);
 
+	printf("x_max=%d y_max=%d\n", gfx_data->width, gfx_data->height);
 	for (uint16_t x=0; x < gfx_data->width; ++x) {
 		for (uint16_t y=0; y < gfx_data->width; ++y) {
 
@@ -46,13 +65,13 @@ static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx
 
 int main(int argc, char* argv[])
 {
-	uint8_t gfx_buffer[GRAPHX_BUFFER_SIZE(SCREEN_WIDTH, SCREEN_HEIGHT)];
+	uint8_t gfx_buffer[GFX_SIZE];
 
 	struct graphx_data gfx_data = {
-		.buffer = gfx_buffer,
+		.buffer      = gfx_buffer,
 		.buffer_size = sizeof(gfx_buffer),
-		.width = SCREEN_WIDTH,
-		.height = SCREEN_HEIGHT
+		.width       = GFX_WIDTH,
+		.height      = GFX_HEIGHT
 	};
 
 	set_graphx_buffer_content(&gfx_data);
@@ -102,7 +121,7 @@ int main(int argc, char* argv[])
 		if(!renderer)
 		{
 			printf("Renderer could not be created!\n"
-					"SDL_Error: %s\n", SDL_GetError());
+				"SDL_Error: %s\n", SDL_GetError());
 		}
 		else
 		{
@@ -126,10 +145,10 @@ int main(int argc, char* argv[])
 				}
 
 				// Initialize renderer color white for the background
-				SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+				check_sdl(SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF));
 
 				// Clear screen
-				SDL_RenderClear(renderer);
+				check_sdl(SDL_RenderClear(renderer));
 
 				render_graphx_buffer(renderer, &gfx_data);
 
