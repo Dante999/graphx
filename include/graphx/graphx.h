@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#define GRAPHX_BUFFER_SIZE(width,height)   (width * (height / 8))
+#define GRAPHX_BUFFER_SIZE(width,height)   (width * height / 8)
 
 struct graphx_data {
 	uint8_t *buffer;
@@ -204,8 +204,8 @@ void graphx_draw_char(
 		for (uint16_t col = 0; col < font_width; col++) {
 
 			uint16_t i_new = start_index + row_offset + col;
-			uint8_t  x_new = x + col;
-			uint8_t  y_new = y + (row * 8);
+			uint16_t  x_new = x + col;
+			uint16_t  y_new = y + (row * 8);
 
 			graphx_draw_byte(data, x_new, y_new,
 				font_get_byte(font, i_new), fg_color, bg_color);
