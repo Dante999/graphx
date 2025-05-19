@@ -1,0 +1,6 @@
+[submodule "thirdparty/libcutils"]
+	path = thirdparty/libcutils
+	url = https://github.com/Dante999/libcutils.git
+[submodule "thirdparty/stb"]
+	path = thirdparty/stb
+	url = https://github.com/nothings/stb.git
