@@ -7,8 +7,6 @@
 
 int main(int argc, char *argv[])
 {
-	printf("hello world!\n");
-
 	args_add_flag("--help");
 	args_add_flag("--generate_template");
 	args_add_argument("--char_width");
@@ -44,7 +42,7 @@ int main(int argc, char *argv[])
 		char filename[255];
 		snprintf(filename, sizeof(filename), "template_%dx%d.png", char_width, char_height);
 		Result gen_result = template_generator_create(
-				filename, 
+				filename,
 				char_width, char_height,
 				char_columns, char_rows);
 
