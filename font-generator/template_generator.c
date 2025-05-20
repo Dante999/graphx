@@ -10,12 +10,12 @@
 
 #define RGB_PIXEL_SIZE   3
 
-Result template_generator_create(const char *path,
-		int char_width, int char_height,
-		int char_columns, int char_rows)
+Result create_tilemap_template(const char *path,
+	int char_width, int char_height,
+	int char_columns, int char_rows)
 {
 	if (char_width < 1 || char_height < 1) {
-		return make_result(
+		return result_make(
 			false,
 			"char width and height must be greater than zero!");
 	}
@@ -62,10 +62,10 @@ Result template_generator_create(const char *path,
 	free(png_data);
 
 	if (write_result ==  0) {
-		return make_result(false, "Failed to write png!\n");
+		return result_make(false, "Failed to write png!\n");
 	}
 	else {
-		return make_result_success();
+		return result_make_success();
 	}
 }
 
