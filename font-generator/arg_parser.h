@@ -8,21 +8,21 @@
 
 #include "result.h"
 
-// TODO: void args_add_command(const char *cmd, const char *description);
-void args_add_flag(const char *key);
-void args_add_argument(const char *key);
-void args_add_argument_with_default(const char *key, const char *default_value);
+void args_add_command(const char *name, const char *description);
+void args_add_flag(const char *name);
+void args_add_option(const char *name);
+void args_add_option_with_default(const char *name, const char *default_value);
 
 Result args_parse(int argc, char *argv[]);
-Result args_verify(void);
-void args_print(void);
-void args_help(const char *program_name);
 
-const char *args_gets(const char *key, Result *result);
-int         args_geti(const char *key, Result *result);
-bool        args_get_flag(const char *key);
-bool        args_is_argument_set(const char *key);
+void args_print_values(void);
+void args_print_help(const char *program_name);
 
+const char *args_get_option_as_str(const char *name, Result *result);
+int         args_get_option_as_int(const char *name, Result *result);
+
+bool args_is_command_given(const char *name);
+bool args_is_flag_given(const char *name);
 
 /* *****************************************************************************
  * Implementation
@@ -32,30 +32,43 @@ bool        args_is_argument_set(const char *key);
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
+#define MAX_OPTIONS     100
+#define MAX_FLAGS    100
+#define MAX_COMMANDS 100
 
-#define MAX_ARGS  100
-#define MAX_FLAGS 100
-
-#define MAX_KEY_LEN        255
-#define MAX_VALUE_LEN      255
+#define MAX_KEY_LEN    255
+#define MAX_VALUE_LEN  255
+#define MAX_DESC_LEN   255
 
 
 typedef struct {
 	char key[MAX_KEY_LEN];
-	char default_value[MAX_VALUE_LEN];
 	char value[MAX_VALUE_LEN];
-} Arg;
+	bool has_default;
+	char default_value[MAX_VALUE_LEN];
+	bool is_given;
+} Option;
+
+typedef struct {
+	char key[MAX_KEY_LEN];
+	bool is_given;
+} Flag;
+
+typedef struct {
+	char key[MAX_KEY_LEN];
+	char description[MAX_DESC_LEN];
+	bool is_given;
+} Command;
+
+// ----------------
 
 typedef struct {
 	size_t count;
-	Arg entries[MAX_ARGS];
-} Args;
+	Option entries[MAX_OPTIONS];
+} Options;
 
-typedef struct {
-	char key[MAX_KEY_LEN];
-	bool value;
-} Flag;
 
 typedef struct {
 	size_t count;
@@ -63,16 +76,25 @@ typedef struct {
 } Flags;
 
 
+typedef struct {
+	size_t count;
+	Command entries[MAX_COMMANDS];
+} Commands;
 
-static Args  g_args;
-static Flags g_flags;
+// ----------------
+
+static Options  g_options  = {0};
+static Flags    g_flags    = {0};
+static Commands g_commands = {0};
 
 
-static bool args_set_flag_value(const char *val)
+static bool args_parse_as_flag(const char *text)
 {
 	for (size_t i=0; i < g_flags.count; ++i) {
-		if (strncmp(g_flags.entries[i].key, val, MAX_KEY_LEN) == 0) {
-			g_flags.entries[i].value = true;
+		Flag *it = &g_flags.entries[i];
+
+		if (strncmp(it->key, text, MAX_KEY_LEN) == 0) {
+			it->is_given = true;
 			return true;
 		}
 	}
@@ -80,19 +102,33 @@ static bool args_set_flag_value(const char *val)
 	return false;
 }
 
-static bool args_set_arg_value(const char *val)
+static bool args_parse_as_command(const char *text)
 {
-	char *delimiter = strchr(val, '=');
+	for (size_t i=0; i < g_commands.count; ++i) {
+		Command *it = &g_commands.entries[i];
+
+		if (strncmp(it->key, text, MAX_KEY_LEN) == 0) {
+			it->is_given = true;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static bool args_parse_as_option(const char *text)
+{
+	char *delimiter = strchr(text, '=');
 
 	if (delimiter == NULL) {
 		return false;
 	}
 
-	for (size_t i=0; i < g_args.count; ++i) {
+	for (size_t i=0; i < g_options.count; ++i) {
 
-		Arg *stored_arg = &g_args.entries[i];
+		Option *it = &g_options.entries[i];
 
-		if (strncmp(stored_arg->key, val, delimiter-val) != 0) {
+		if (strncmp(it->key, text, delimiter-text) != 0) {
 			continue;
 		}
 
@@ -100,80 +136,143 @@ static bool args_set_arg_value(const char *val)
 			return false;
 		}
 
-		strncpy(stored_arg->value, (delimiter+1), MAX_KEY_LEN);
+		strncpy(it->value, (delimiter+1), MAX_KEY_LEN);
+		it->is_given = true;
 		return true;
 	}
 
 	return false;
 }
 
-
-static Arg *args_get_arg_ptr(const char *key)
+static Command* args_find_command(const char *name)
 {
-	for (size_t i = 0; i < g_args.count; ++i) {
-		Arg *arg= &g_args.entries[i];
+	for (size_t i = 0; i < g_commands.count; ++i) {
+		Command *it = &g_commands.entries[i];
 
-		if (strncmp(arg->key, key, MAX_KEY_LEN) == 0) {
-			return arg;
+		if (strncmp(it->key, name, MAX_KEY_LEN) == 0) {
+			return it;
 		}
 	}
 
 	return NULL;
 }
 
-void args_add_argument_with_default(const char *key, const char *default_value)
+static Option *args_find_option(const char *name)
 {
-	if (g_args.count < MAX_ARGS) {
-		Arg *arg = &g_args.entries[g_args.count++];
-		strncpy(arg->key, key, MAX_KEY_LEN);
-		arg->value[0] = '\0';
-		strncpy(arg->default_value, default_value, MAX_VALUE_LEN);
+	for (size_t i = 0; i < g_options.count; ++i) {
+		Option *it = &g_options.entries[i];
+
+		if (strncmp(it->key, name, MAX_KEY_LEN) == 0) {
+			return it;
+		}
+	}
+
+	return NULL;
+}
+
+static Flag* args_find_flag(const char *name)
+{
+	for (size_t i = 0; i < g_flags.count; ++i) {
+		Flag *it = &g_flags.entries[i];
+
+		if (strncmp(it->key, name, MAX_KEY_LEN) == 0) {
+			return it;
+		}
+	}
+
+	return NULL;
+}
+
+void args_add_command(const char *name, const char *description)
+{
+	if (g_commands.count < MAX_COMMANDS) {
+		Command *it = &g_commands.entries[g_commands.count++];
+
+		strncpy(it->key, name, MAX_KEY_LEN);
+		strncpy(it->description, description, MAX_DESC_LEN);
+		it->is_given = false;
 	}
 }
 
-void args_add_argument(const char *key) {
-	args_add_argument_with_default(key, "");
+void args_add_option(const char *name) {
+	if (g_options.count < MAX_OPTIONS) {
+		Option *it = &g_options.entries[g_options.count++];
+
+		strncpy(it->key, name, MAX_KEY_LEN);
+
+		it->is_given         = false;
+		it->value[0]         = '\0';
+
+		it->has_default      = false;
+		it->default_value[0] = '\0';
+	}
 }
 
-void args_add_flag(const char* key)
+void args_add_option_with_default(const char *name, const char *default_value)
+{
+	if (g_options.count < MAX_OPTIONS) {
+		Option *it = &g_options.entries[g_options.count++];
+
+		strncpy(it->key, name, MAX_KEY_LEN);
+
+		it->is_given         = false;
+		it->value[0]         = '\0';
+
+		it->has_default      = true;
+		strncpy(it->default_value, default_value, MAX_VALUE_LEN);
+	}
+}
+
+
+void args_add_flag(const char* name)
 {
 	if (g_flags.count < MAX_FLAGS) {
-		Flag *flag = &g_flags.entries[g_flags.count++];
-		strncpy(flag->key, key, MAX_KEY_LEN);
-		flag->value = false;
+		Flag *it = &g_flags.entries[g_flags.count++];
+
+		strncpy(it->key, name, MAX_KEY_LEN);
+		it->is_given = false;
 	}
 }
 
-void args_help(const char *program_name)
+void args_print_help(const char *program_name)
 {
-	printf("Usage: %s [Flags] [Arguments]\n", program_name);
+	printf("Usage: %s Command [Flags] [Options]\n", program_name);
+
+	printf("\n");
+	printf("Commands\n");
+	for (size_t i=0; i < g_commands.count; ++i) {
+		Command *it = &g_commands.entries[i];
+
+		printf("\t%-25s %s\n", it->key, it->description);
+	}
+
 	printf("\n");
 	printf("Flags\n");
 	for (size_t i=0; i < g_flags.count; ++i) {
-		Flag *flag= &g_flags.entries[i];
+		Flag *it = &g_flags.entries[i];
 
-		printf("\t%s\n", flag->key);
+		printf("\t%s\n", it->key);
 	}
 
 	printf("\n");
 	printf("Options\n");
-	for (size_t i=0; i < g_args.count; ++i) {
-		Arg *arg = &g_args.entries[i];
+	for (size_t i=0; i < g_options.count; ++i) {
+		Option *it = &g_options.entries[i];
 
 		char tmp[512];
-		snprintf(tmp, sizeof(tmp), "%s=<VALUE>", arg->key);
-		printf("\t%-20s [default: %s]\n", tmp, arg->default_value);
+		snprintf(tmp, sizeof(tmp), "%s=<VALUE>", it->key);
+		printf("\t%-20s [default: %s]\n", tmp, it->default_value);
 	}
 }
 
-void args_print(void)
+void args_print_values(void)
 {
 	printf("###########################################\n");
 	printf("# CURRENT ARGUMENT VALUES                 #\n");
 	printf("###########################################\n");
 
-	for (size_t i = 0; i < g_args.count; ++i) {
-		Arg *arg = &g_args.entries[i];
+	for (size_t i = 0; i < g_options.count; ++i) {
+		Option *arg = &g_options.entries[i];
 
 		printf("\t%s=%s\n", arg->key,
 				strlen(arg->value) > 0 ? arg->value : arg->default_value);
@@ -184,81 +283,78 @@ void args_print(void)
 
 Result args_parse(int argc, char *argv[])
 {
-
+	// argv[0] is the program name, so skip it
 	for (int i=1; i < argc; ++i) {
 		const char *val = argv[i];
 
-		if (args_set_flag_value(val))  continue;
-		if (args_set_arg_value(val)) continue;
+		if (args_parse_as_command(val)) continue;
+		if (args_parse_as_flag(val))    continue;
+		if (args_parse_as_option(val))  continue;
 
-		return result_make(false, "undefined argument: %s", val);
+		return result_make(false, "unknown argument given: '%s'", val);
 	}
 
 	return result_make_success();
 }
 
-Result args_verify(void) {
-
-	for (size_t j=0; j < g_args.count; ++j) {
-		Arg *stored_arg = &g_args.entries[j];
-
-		if (strlen(stored_arg->default_value) == 0 &&
-			strlen(stored_arg->value) == 0) {
-			return result_make(
-					false,
-					"At least one mandatory argument is not set: %s",
-					stored_arg->key);
-		}
-	}
-	return result_make_success();
-}
-
-bool args_is_argument_set(const char *key)
+bool args_is_option_given(const char *name)
 {
-	Arg *arg = args_get_arg_ptr(key);
+	Option *it = args_find_option(name);
 
-	if (arg == NULL)             return false;
-	if (strlen(arg->value) == 0) return false;
+	if (it == NULL)             return false;
+	if (strlen(it->value) == 0) return false;
 
 	return true;
 }
 
-const char *args_gets(const char *key, Result *result)
+const char *args_get_option_as_str(const char *name, Result *result)
 {
-	Arg *arg= args_get_arg_ptr(key);
+	Option *it = args_find_option(name);
 
-	if (arg == NULL) {
-		result_set(result, false, "given key '%s' does not exist", key);
+	if (it == NULL) {
+		result_set(result, false, "option '%s' is not defined!", name);
 		return NULL;
 	}
-	else if (strlen(arg->value) >0) {
-		result_set(result, true, "giving overriden value");
-		return arg->value;
+	else if (!it->is_given && !it->has_default) {
+		result_set(result, false, "option '%s' is not set and does not have a default value!", name);
+		return NULL;
+	}
+	else if (it->is_given) {
+		result_set(result, true, "returning given value");
+		return it->value;
 	}
 	else {
-		result_set(result, true, "giving default value");
-		return arg->default_value;
+		result_set(result, true, "returning default value");
+		return it->default_value;
 	}
 }
 
-int args_geti(const char *key, Result *result)
+int args_get_option_as_int(const char *key, Result *result)
 {
-	return atoi(args_gets(key, result));
-}
-
-bool args_get_flag(const char *key)
-{
-	for (size_t i=0; i < g_flags.count; ++i) {
-		Flag *flag= &g_flags.entries[i];
-
-		if (strncmp(flag->key, key, MAX_KEY_LEN) == 0) {
-			return flag->value;
-		}
+	const char *s = (args_get_option_as_str(key, result));
+	if (s != NULL) {
+		return atoi(s);
 	}
-
-	return false;
+	else {
+		return INT_MIN;
+	}
 }
 
+bool args_is_flag_given(const char *name)
+{
+	Flag *it = args_find_flag(name);
+
+	if (it == NULL) return false;
+	else            return it->is_given;
+}
+
+bool args_is_command_given(const char *name)
+{
+	Command *it = args_find_command(name);
+
+	if (it == NULL) return false;
+	else            return it->is_given;
+}
 
 #endif // ARG_PARSER_IMPLEMENTATION
 

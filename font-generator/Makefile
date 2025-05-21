@@ -1,7 +1,7 @@
 #LIBCUTILS_SRC_DIR=../thirdparty/libcutils/src
 #LIBCUTILS_INC_DIR=../thirdparty/libcutils/include
 
-CC_FLAGS = -Wall -Wextra -Werror -Wpedantic \
+CC_FLAGS = -Wall -Wextra -Werror -Wpedantic -g \
 	-I../include
 #	-I${LIBCUTILS_INC_DIR} \
 
