@@ -8,7 +8,7 @@ CC_FLAGS = -Wall -Wextra -Werror -Wpedantic -g \
 all:
 	${CC} ${CC_FLAGS} -o font-generator \
 		main.c \
-		template_generator.c
+		atlas_generator.c
 
 clean:
 	rm font-generator

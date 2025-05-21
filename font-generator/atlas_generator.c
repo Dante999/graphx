@@ -1,4 +1,4 @@
-#include "template_generator.h"
+#include "atlas_generator.h"
 
 #include "colors.h"
 

@@ -7,7 +7,7 @@
 #include "arg_parser.h"
 
 
-#include "template_generator.h"
+#include "atlas_generator.h"
 
 static void print_and_increase_on_error(const Result *result, int *error_counter)
 {
@@ -56,7 +56,7 @@ static int handle_generate_template(void)
 	}
 }
 
-static int handle_convert_template(void)
+static int handle_parse_atlas(void)
 {
 #if 0
 	const int char_width   = args_geti("--char_width", NULL);
@@ -84,19 +84,14 @@ static int handle_convert_template(void)
 	return 0;
 }
 
-/**
- * TODO: Refactor to something like this
- *
- * ./font-generator create-template --output_file=<FILE> --char_width=<VALUE> ...
- * ./font-generator convert-template --input-file=<FILE> --output-file=<FILE> ..
- */
+
 int main(int argc, char *argv[])
 {
-	args_add_command("create_template", 
-			"creates an empty font atlas in png format");
+	args_add_command("create_atlas", 
+			"creates an empty font atlas with the given dimensions");
 
-	args_add_command("convert_template", 
-			"converts a given font atlas png to a c header file");
+	args_add_command("parse_atlas", 
+			"converts a given font atlas to a c header file");
 
 	args_add_flag("--help");
 
@@ -119,14 +114,14 @@ int main(int argc, char *argv[])
 		args_print_help(argv[0]);
 	}
 
-	if (args_is_command_given("create_template")) {
-		printf("INFO: executing command 'create_template'\n"); 
+	if (args_is_command_given("create_atlas")) {
+		printf("INFO: executing command 'create_atlas'\n"); 
 		return handle_generate_template();
 	}
 
-	if (args_is_command_given("convert_template")) {
-		printf("INFO: executing command 'convert_template'\n"); 
-		return handle_convert_template();
+	if (args_is_command_given("parse_atlas")) {
+		printf("INFO: executing command 'parse_atlas'\n"); 
+		return handle_parse_atlas();
 	}
 
 	printf("ERROR: no command given!\n");
