@@ -194,10 +194,15 @@ void graphx_draw_char(
 	const uint8_t font_width  = font_get_width(font);
 	const uint8_t font_height = font_get_height(font);
 
+	uint16_t row_count = (font_height / 8);
+	if (font_height % 8 != 0) {
+		row_count++;
+	}
+
 	uint8_t  char_index  = (uint8_t)(c - 0x20);
 	uint16_t start_index = char_index * font_width;
 
-	for (uint16_t row = 0; row < (font_height / 8); row++) {
+	for (uint16_t row = 0; row < row_count; row++) {
 
 		uint16_t row_offset = row * font_width;
 

@@ -6,6 +6,7 @@
 Result create_tilemap_template(
 	const char *path,
 	int char_width, int char_height,
-	int char_columns, int char_rows);
+	int char_columns, int char_rows,
+	int border_width);
 
 #endif // TEMPLATE_GENERATOR_H

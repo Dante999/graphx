@@ -7,6 +7,7 @@
 #define GRAPHX_IMPLEMENTATION
 #include "graphx/graphx.h"
 #include "graphx/font5x7.h"
+#include "graphx/font5x7_test.h"
 
 // Define MAX and MIN macros
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -46,6 +47,59 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 	y+=font_height;
 
 	graphx_draw_string(gfx_data, font5x7, 10, y, "This is a line with exactly 45 columns width", GRAPHX_COLOR_BLACK);
+	y+=font_height;
+
+	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
+	y+=5;
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7, 10, y, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7, 10, y, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7, 10, y, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7, 10, y, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7, 10, y, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7, 10, y, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	y+=5;
+	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
+
+	// ------------------
+
+	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
+	y+=5;
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7_test, 10, y, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7_test, 10, y, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7_test, 10, y, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7_test, 10, y, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7_test, 10, y, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	graphx_draw_string(gfx_data, font5x7_test, 10, y, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
+
+	y+=font_height;
+	y+=5;
+	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 }
 
 static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx_data)

@@ -1,11 +1,13 @@
-#ifndef TILEMAP_TO_FONT_H
-#define TILEMAP_TO_FONT_H
+#ifndef ATLAS_PARSER_H
+#define ATLAS_PARSER_H
 
-#include "libcutils/result.h"
+#include "result.h"
 
-Result tilemap_to_font(
-	const char *path, 
-	int char_width, int char_height,
-	int char_columns, int char_rows);
+Result atlas_parser(
+	const char *input_file,
+	const char *output_file,
+	int border_width,
+	int char_width,
+	int char_height);
 
-#endif // TILEMAP_TO_FONT_H
+#endif // ATLAS_PARSER_H

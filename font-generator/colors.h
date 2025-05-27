@@ -3,8 +3,11 @@
 
 #include <stdint.h>
 
-uint8_t rgb_tile_a[3] = {0xFF, 0xFF, 0xFF};
-uint8_t rgb_tile_b[3] = {0xEF, 0xEF, 0xEF};
-uint8_t rgb_black[3]  = {0x00, 0x00, 0x00};
+#define RGB_PIXEL_SIZE   3
+
+#define RGB_BORDER     {0xFF, 0xFF, 0xFF};
+#define RGB_BACKGROUND {0xEF, 0xEF, 0xEF};
+#define RGB_BLACK      {0x00, 0x00, 0x00};
+
 
 #endif // COLORS_H
