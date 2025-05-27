@@ -1,5 +1,11 @@
 
 
+font-generator:
+	make -C font-generator clean all
+
+sdl-demo:
+	make -C sdl-demo clean all
+
 fonts:
 	./font-generator/font-generator parse_atlas \
 		--input_file=font-atlas/font_5x7.png \

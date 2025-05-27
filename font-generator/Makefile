@@ -14,4 +14,4 @@ all:
 	${LD_FLAGS}
 
 clean:
-	rm font-generator
+	rm -rf font-generator

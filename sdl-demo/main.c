@@ -24,6 +24,7 @@
 #define SCREEN_HEIGHT   (GFX_HEIGHT * RENDER_SCALE)
 
 
+#define INC_Y(Y, FONT_HEIGHT) (Y += FONT_HEIGHT +1)
 static void check_sdl(int sdl_error)
 {
 	if (sdl_error != 0) {
@@ -39,65 +40,66 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 
 	graphx_draw_rect(gfx_data, 0, 0, gfx_data->width-1, gfx_data->height-1, GRAPHX_COLOR_BLACK);
 
-	uint8_t font_height = font_get_height(font5x7);
 
 	uint16_t y = 10;
 
+	uint8_t font_height = font_get_height(font5x7);
 	graphx_draw_string(gfx_data, font5x7, 10, y, "Hello World!", GRAPHX_COLOR_BLACK);
-	y+=font_height;
+	INC_Y(y, font_height);
 
 	graphx_draw_string(gfx_data, font5x7, 10, y, "This is a line with exactly 45 columns width", GRAPHX_COLOR_BLACK);
-	y+=font_height;
+	INC_Y(y, font_height);
 
 	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 	y+=5;
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7, 10, y, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7, 10, y, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7, 10, y, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7, 10, y, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7, 10, y, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7, 10, y, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	y+=5;
 	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 
 	// ------------------
 
+	font_height = font_get_height(font5x7_test);
 	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 	y+=5;
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7_test, 10, y, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7_test, 10, y, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7_test, 10, y, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7_test, 10, y, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7_test, 10, y, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	graphx_draw_string(gfx_data, font5x7_test, 10, y, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
 
-	y+=font_height;
+	INC_Y(y, font_height);
 	y+=5;
 	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 }

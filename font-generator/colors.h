@@ -10,4 +10,9 @@
 #define RGB_BLACK      {0x00, 0x00, 0x00};
 
 
+#define COLOR_EQUALS(lhs, rhs) (\
+	(lhs)[0] == (rhs)[0] && \
+	(lhs)[1] == (rhs)[1] && \
+	(lhs)[2] == (rhs)[2])
+
 #endif // COLORS_H

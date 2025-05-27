@@ -2,6 +2,7 @@
 
 #include "colors.h"
 
+#include <assert.h>
 #include <stdint.h>
 #include <strings.h>
 #include <errno.h>
@@ -42,13 +43,21 @@ Result atlas_parser(
 				RGB_PIXEL_SIZE, channels);
 	}
 
-	const int char_columns = (image_width  - border_width) / (char_width   +border_width);
-	const int char_rows    = (image_height - border_width) / (char_height  +border_width);
+	const int char_columns = (image_width  - border_width) / (char_width  + border_width);
+	const int char_rows    = (image_height - border_width) / (char_height + border_width);
+	const int char_width_bytes  = char_width;
+	const int char_height_bytes = 1; // TODO: Fixme, works only with a max char_width of 8 pixels
 
-	// TODO: Fixme, works only with a max char_width of 8 pixels
-	const size_t array_size = char_columns * char_rows * char_width;
+	printf("DEBUG: parsing atlas, calculated char_columns=%d char_rows=%d\n", char_columns, char_rows);
+	const size_t array_size = char_columns * char_rows * char_height_bytes * char_width_bytes;
+	assert(array_size > 0);
+	printf("DEBUG: array_size=%zu\n", array_size);
 
 	uint8_t *array_data = (uint8_t*) malloc(array_size);
+
+	if (array_data == NULL) {
+		return result_make_error(errno);
+	}
 	memset(array_data, 0, array_size);
 
 
@@ -62,25 +71,37 @@ Result atlas_parser(
 
 			bool x_border= (x % (char_width+border_width)) == 0;
 
-			if (x_border || y_border) {
-				continue;
-			}
+			if (x_border || y_border) continue;
 
-			int index_png = (y * image_width + x) * RGB_PIXEL_SIZE;
+			int png_index = (y * image_width + x) * RGB_PIXEL_SIZE;
 
-			if (png_data[index_png + 0] == rgb_black[0] &&
-			    png_data[index_png + 1] == rgb_black[1] &&
-			    png_data[index_png + 2] == rgb_black[2]) {
+			if (COLOR_EQUALS(&png_data[png_index], &rgb_black[0])) {
 
-				printf("x=%d y=%d: black!\n", x, y);
-
+#if 0
+				const int cell_x = x / (char_width+border_width*2);
+				const int cell_y = y / (char_height+border_width*2);
+				printf("DEBUG: x=%d cell_x=%d\n", x, cell_x);
 				// TODO: compensate border width
-				int index_array = x + (y / 8) * image_width;
-				int y_bit = y % 8;
-
+#else
+				const int x_correction = border_width + (x / (char_width+border_width))  * border_width;
+				const int y_correction = border_width + (y / (char_height+border_width)) * border_width;
+				const int x_array = x - x_correction;
+				const int y_array = y - y_correction;
+				const int bytes_per_row = char_width * char_columns;
+				int index_array = (x_array) + ((y_array+1) / 8) * bytes_per_row;
+				//                                      ^
+				//TODO: font_height is 7, therefore jumping to
+				//the next "line" in the byte array is one step
+				//to late
+#endif
+				int y_bit = y_array % 8;
+				assert((size_t) index_array < array_size);
+				printf("x=%03d y=%03d | x_cor=%03d y_cor=%03d | array_index=%d array_bit=%d\n", x, y, x_correction, y_correction, index_array, y_bit);
 				array_data[index_array] |= (1u << y_bit);
 			}
 		}
+
+		if (y > 10) break;
 	}
 
 	stbi_image_free(png_data);
