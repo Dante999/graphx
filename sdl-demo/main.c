@@ -7,7 +7,8 @@
 #define GRAPHX_IMPLEMENTATION
 #include "graphx/graphx.h"
 #include "graphx/font5x7.h"
-#include "graphx/font5x7_test.h"
+#include "graphx/font3x5.h"
+#include "graphx/font5x7_reference.h"
 
 // Define MAX and MIN macros
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -24,7 +25,7 @@
 #define SCREEN_HEIGHT   (GFX_HEIGHT * RENDER_SCALE)
 
 
-#define INC_Y(Y, FONT_HEIGHT) (Y += FONT_HEIGHT +1)
+#define INC_Y(Y, FONT_HEIGHT) (Y += FONT_HEIGHT +10)
 static void check_sdl(int sdl_error)
 {
 	if (sdl_error != 0) {
@@ -33,6 +34,43 @@ static void check_sdl(int sdl_error)
 	}
 }
 
+
+static uint16_t draw_font_atlas(
+		struct graphx_data *gfx_data,
+		const uint8_t *font,
+		uint16_t y_start)
+{
+	const uint16_t x = 10;
+	const uint16_t line_offset = font_get_height(font)+2;
+	graphx_draw_hline(gfx_data, 0, y_start, gfx_data->width-1, GRAPHX_COLOR_BLACK);
+
+	y_start += 5;
+	
+
+	graphx_draw_string(gfx_data, font, x, y_start, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
+
+	y_start += line_offset;
+	graphx_draw_string(gfx_data, font, x, y_start, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
+
+	y_start += line_offset;
+	graphx_draw_string(gfx_data, font, x, y_start, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
+
+	y_start += line_offset;
+	graphx_draw_string(gfx_data, font, x, y_start, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
+
+	y_start += line_offset;
+	graphx_draw_string(gfx_data, font, x, y_start, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
+
+	y_start += line_offset;
+	graphx_draw_string(gfx_data, font, x, y_start, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
+
+	y_start += line_offset;
+	y_start +=5;
+
+	graphx_draw_hline(gfx_data, 0, y_start, gfx_data->width-1, GRAPHX_COLOR_BLACK);
+
+	return y_start;
+}
 
 static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 {
@@ -43,65 +81,11 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 
 	uint16_t y = 10;
 
-	uint8_t font_height = font_get_height(font5x7);
-	graphx_draw_string(gfx_data, font5x7, 10, y, "Hello World!", GRAPHX_COLOR_BLACK);
-	INC_Y(y, font_height);
+	y = draw_font_atlas(gfx_data, font5x7_reference, y);
+	y = draw_font_atlas(gfx_data, font5x7, y);
+	y = draw_font_atlas(gfx_data, font3x5, y);
 
-	graphx_draw_string(gfx_data, font5x7, 10, y, "This is a line with exactly 45 columns width", GRAPHX_COLOR_BLACK);
-	INC_Y(y, font_height);
 
-	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
-	y+=5;
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7, 10, y, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7, 10, y, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7, 10, y, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7, 10, y, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7, 10, y, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7, 10, y, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	y+=5;
-	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
-
-	// ------------------
-
-	font_height = font_get_height(font5x7_test);
-	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
-	y+=5;
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7_test, 10, y, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7_test, 10, y, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7_test, 10, y, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7_test, 10, y, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7_test, 10, y, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	graphx_draw_string(gfx_data, font5x7_test, 10, y, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
-
-	INC_Y(y, font_height);
-	y+=5;
-	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 }
 
 static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx_data)

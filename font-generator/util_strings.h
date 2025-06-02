@@ -12,8 +12,8 @@ bool  util_stranyof(const char *s, const char **probe_values, size_t probe_count
 char *util_strltrim(char *s);
 char *util_strrtrim(char *s);
 char *util_strtrim(char *s);
-
-
+char *util_strtoupper(char *s);
+char *util_strreplace(char *s, char old_char, char new_char);
 
 /* *****************************************************************************
  * Implementation
@@ -21,6 +21,7 @@ char *util_strtrim(char *s);
 #ifdef UTIL_STRINGS_IMPLEMENTATION
 
 #include <string.h>
+#include <ctype.h>
 
 bool util_is_whitespace(char c)
 {
@@ -95,6 +96,27 @@ bool util_stranyof(const char *s, const char **probe_values, size_t probe_count)
 	return false;
 }
 
+char *util_strtoupper(char *s)
+{
+	while (*s != '\0') {
+		*s = toupper(*s);
+		s++;
+	}
+
+	return s;
+}
+
+char *util_strreplace(char *s, char old_char, char new_char)
+{
+	char *p = strchr(s, old_char);
+
+	while(p != NULL) {
+		*p = new_char;
+		p = strchr(s, old_char);
+	}
+
+	return s;
+}
 
 #endif // UTIL_STRINGS_IMPLEMENTATION
 

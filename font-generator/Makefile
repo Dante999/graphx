@@ -6,6 +6,9 @@ CC_FLAGS = -Wall -Wextra -Werror -Wpedantic -g \
 #	-I${LIBCUTILS_INC_DIR} \
 
 LD_FLAGS = -lm
+
+
+
 all:
 	${CC} ${CC_FLAGS} -o font-generator \
 		main.c \

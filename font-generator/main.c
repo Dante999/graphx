@@ -87,15 +87,15 @@ static int handle_parse_atlas(void)
 		input_file,
 		output_file,
 		BORDER_WIDTH,
-		char_width, 
+		char_width,
 		char_height);
 
 	if (res.success) {
-		printf("INFO: Successfully created template file!\n");
+		printf("INFO: Successfully parsed font atlas file!\n");
 		return 0;
 	}
 	else {
-		printf("ERROR: Failed to create template file: %s\n", res.msg);
+		printf("ERROR: Failed to parse font atlas: %s\n", res.msg);
 		return 1;
 	}
 }
