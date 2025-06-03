@@ -125,7 +125,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	args_print_values();
 
 	if (args_is_flag_given("--help")) {
 		args_print_help(argv[0]);

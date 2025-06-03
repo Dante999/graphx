@@ -8,19 +8,18 @@
 #include "graphx/graphx.h"
 #include "graphx/font5x7.h"
 #include "graphx/font3x5.h"
-#include "graphx/font5x7_reference.h"
 
 // Define MAX and MIN macros
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 // Define screen dimensions
-#define GFX_WIDTH   480
-#define GFX_HEIGHT  800
+#define GFX_WIDTH   400
+#define GFX_HEIGHT  400
 #define GFX_SIZE   (GRAPHX_BUFFER_SIZE(GFX_WIDTH, GFX_HEIGHT))
 
 
-#define RENDER_SCALE    2.0f
+#define RENDER_SCALE    3.0f
 #define SCREEN_WIDTH    (GFX_WIDTH * RENDER_SCALE)
 #define SCREEN_HEIGHT   (GFX_HEIGHT * RENDER_SCALE)
 
@@ -45,7 +44,7 @@ static uint16_t draw_font_atlas(
 	graphx_draw_hline(gfx_data, 0, y_start, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 
 	y_start += 5;
-	
+
 
 	graphx_draw_string(gfx_data, font, x, y_start, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
 
@@ -81,11 +80,8 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 
 	uint16_t y = 10;
 
-	y = draw_font_atlas(gfx_data, font5x7_reference, y);
 	y = draw_font_atlas(gfx_data, font5x7, y);
 	y = draw_font_atlas(gfx_data, font3x5, y);
-
-
 }
 
 static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx_data)

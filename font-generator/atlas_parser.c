@@ -15,104 +15,79 @@
 
 #include "util_strings.h"
 
-static Result write_font_file(
-		const char *output_file,
-		int char_width,
-		int char_height,
-		const uint8_t *data,
-		size_t len);
-
-// FIXME: something with calculating y_bit of y_offset is not correct
-Result atlas_parser(
-	const char *input_file,
-	const char *output_file,
-	int border_width,
-	int char_width,
-	int char_height)
-{
-	if (char_width < 1 || char_height < 1) {
-		return result_make(
-			false,
-			"char width and height must be greater than zero!");
-	}
-
-	int image_width  = 0;
-	int image_height = 0;
-	int channels = 0;
-
-	uint8_t *img_data = stbi_load(input_file, &image_width, &image_height, &channels, 0);
-
-	if (channels != RGB_PIXEL_SIZE) {
-		return result_make(
-				false,
-				"expected png color channels to be %d but is %d",
-				RGB_PIXEL_SIZE, channels);
-	}
-
-	const int char_columns = (image_width  - border_width) / (char_width  + border_width);
-	const int char_rows    = (image_height - border_width) / (char_height + border_width);
-	const int char_width_bytes  = char_width;
-	const int char_height_bytes = 1; // TODO: Fixme, works only with a max char_width of 8 pixels
-
-	printf("DEBUG: parsing atlas, calculated char_columns=%d char_rows=%d\n", char_columns, char_rows);
-	const size_t array_size = char_columns * char_rows * char_height_bytes * char_width_bytes;
-	assert(array_size > 0);
-	printf("DEBUG: array_size=%zu\n", array_size);
-
-	uint8_t *array_data = (uint8_t*) malloc(array_size);
-
-	if (array_data == NULL) {
-		return result_make_error(errno);
-	}
-	memset(array_data, 0, array_size);
-
-
-	uint8_t rgb_black[RGB_PIXEL_SIZE] = RGB_BLACK;
-
-	for (int img_y = 0; img_y < image_height; img_y++) {
-		bool is_y_border = (img_y % (char_height+border_width)) == 0;
-
-
-		for (int img_x = 0; img_x < image_width; img_x++) {
-
-			bool is_x_border= (img_x % (char_width+border_width)) == 0;
-
-			if (is_x_border || is_y_border) continue;
-
-			int png_index = (img_y * image_width + img_x) * RGB_PIXEL_SIZE;
-
-			if (COLOR_EQUALS(&img_data[png_index], &rgb_black[0])) {
 
 #if 0
-				const int cell_x = x / (char_width+border_width*2);
-				const int cell_y = y / (char_height+border_width*2);
-				printf("DEBUG: x=%d cell_x=%d\n", x, cell_x);
-				// TODO: compensate border width
+	#define DEBUG_PRINTF(c) printf(c)
 #else
-				const int x_correction = border_width + (img_x / (char_width+border_width))  * border_width;
-				const int y_correction = border_width + (img_y / (char_height+border_width)) * border_width;
-				const int x_array = img_x - x_correction;
-				const int y_array = img_y - y_correction;
-				const int bytes_per_row = char_width * char_columns;
-				int index_array = (x_array) + ((y_array+1) / 8) * bytes_per_row;
-				//                                      ^
-				//TODO: font_height is 7, therefore jumping to
-				//the next "line" in the byte array is one step
-				//to late
+	#define DEBUG_PRINTF(...)
 #endif
-				int y_bit = img_y % 8;
-				assert((size_t) index_array < array_size);
-				printf("x=%03d y=%03d | x_cor=%03d y_cor=%03d | array_index=%03d array_bit=%03d\n", img_x, img_y, x_correction, y_correction, index_array, y_bit);
-				array_data[index_array] |= (1u << y_bit);
+
+struct atlas_info {
+	int char_width;
+	int char_height;
+	int char_columns;
+	int char_rows;
+	int img_width;
+	int img_height;
+};
+
+static const uint8_t rgb_black[RGB_PIXEL_SIZE] = RGB_BLACK;
+
+
+static bool img_is_pixel_set(const struct atlas_info *info, int x, int y, const uint8_t *img_data)
+{
+	assert(info != NULL);
+
+	int png_index = (y * info->img_width + x) * RGB_PIXEL_SIZE;
+
+	if (COLOR_EQUALS(&img_data[png_index], &rgb_black[0])) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+static void array_set_pixel(const struct atlas_info *info, int col, int row,
+		int x, int y, uint8_t *array_data)
+{
+	const int start_index = (info->char_width * col) + (info->char_columns * info->char_width * row);
+
+	array_data[start_index+x] |= (1 << y);
+}
+
+
+static void parse_char(
+		const struct atlas_info *info,
+		int col,
+		int row,
+		int x_start,
+		int y_start,
+		const uint8_t *img_data,
+		uint8_t *array_data)
+{
+	assert(x_start > 0);
+	assert(y_start > 0);
+	assert(info->char_width  > 0);
+	assert(info->char_height > 0);
+	assert(img_data   != NULL);
+	assert(array_data != NULL);
+
+	DEBUG_PRINTF("parse_char: x=%03d y=%03d\n", x_start, y_start);
+
+	for (int y=0; y < info->char_height; ++y) {
+		DEBUG_PRINTF("|");
+		for (int x=0; x < info->char_width; ++x) {
+			if (img_is_pixel_set(info, x_start+x, y_start+y, img_data)) {
+				DEBUG_PRINTF("#");
+				array_set_pixel(info, col, row, x, y, array_data);
+			}
+			else {
+				DEBUG_PRINTF(" ");
 			}
 		}
-
-		// if (img_y > 10) break; // TODO: remove me
+		DEBUG_PRINTF("|\n");
 	}
-
-	stbi_image_free(img_data);
-
-	return write_font_file(output_file, char_width, char_height, array_data, array_size);
 }
 
 static Result write_font_file(
@@ -171,5 +146,67 @@ static Result write_font_file(
 	return result_make_success();
 
 }
+
+Result atlas_parser(
+		const char *input_file,
+		const char *output_file,
+		int border_width,
+		int char_width,
+		int char_height)
+{
+	if (char_width < 1 || char_height < 1) {
+		return result_make(
+			false,
+			"char width and height must be greater than zero!");
+	}
+
+	int img_width  = 0;
+	int img_height = 0;
+	int channels = 0;
+
+	uint8_t *img_data = stbi_load(input_file, &img_width, &img_height, &channels, 0);
+
+	if (channels != RGB_PIXEL_SIZE) {
+		return result_make(
+				false,
+				"expected png color channels to be %d but is %d",
+				RGB_PIXEL_SIZE, channels);
+	}
+
+	const struct atlas_info info = {
+		.char_columns = (img_width  - border_width) / (char_width  + border_width),
+		.char_rows    = (img_height - border_width) / (char_height + border_width),
+		.char_width   = char_width,
+		.char_height  = char_height,
+		.img_width    = img_width,
+		.img_height   = img_height
+	};
+
+	printf("DEBUG: parsing atlas, calculated char_columns=%d char_rows=%d\n", info.char_columns, info.char_rows);
+	const size_t array_size = info.char_columns * info.char_rows * char_height* char_width;
+	assert(array_size > 0);
+	printf("DEBUG: array_size=%zu\n", array_size);
+
+	uint8_t *array_data = (uint8_t*) malloc(array_size);
+
+	if (array_data == NULL) {
+		return result_make_error(errno);
+	}
+	memset(array_data, 0, array_size);
+
+	for (int row=0; row < info.char_rows; ++row) {
+		const int y_start = border_width + (row * (char_height + border_width));
+
+		for (int col=0; col <  info.char_columns; ++col) {
+			const int x_start = border_width + (col * (char_width + border_width));
+
+			parse_char(&info, col, row, x_start, y_start, img_data, array_data);
+		}
+	}
+	stbi_image_free(img_data);
+
+	return write_font_file(output_file, char_width, char_height, array_data, array_size);
+}
+
 
 
