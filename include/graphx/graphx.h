@@ -194,21 +194,20 @@ void graphx_draw_char(
 	const uint8_t font_width  = font_get_width(font);
 	const uint8_t font_height = font_get_height(font);
 
-	uint16_t row_count = (font_height / 8);
-	if (font_height % 8 != 0) {
-		row_count++;
-	}
+	const uint16_t height_bytes_per_char = (font_height / 8) + 1;
+	const uint16_t width_bytes_per_char  = font_width;
 
 	uint8_t  char_index  = (uint8_t)(c - 0x20);
-	uint16_t start_index = char_index * font_width;
+	uint16_t start_index = char_index * width_bytes_per_char * height_bytes_per_char;
 
-	for (uint16_t row = 0; row < row_count; row++) {
+	for (uint16_t row = 0; row < height_bytes_per_char; row++) {
 
-		uint16_t row_offset = row * font_width;
+		uint16_t row_offset = row * width_bytes_per_char;
 
-		for (uint16_t col = 0; col < font_width; col++) {
+		for (uint16_t col= 0; col < width_bytes_per_char; col++) {
 
 			uint16_t i_new = start_index + row_offset + col;
+
 			uint16_t  x_new = x + col;
 			uint16_t  y_new = y + (row * 8);
 

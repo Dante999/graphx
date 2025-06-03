@@ -6,8 +6,10 @@
 
 #define GRAPHX_IMPLEMENTATION
 #include "graphx/graphx.h"
-#include "graphx/font5x7.h"
+
 #include "graphx/font3x5.h"
+#include "graphx/font5x7.h"
+#include "graphx/font10x14.h"
 
 // Define MAX and MIN macros
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -40,9 +42,9 @@ static uint16_t draw_font_atlas(
 		uint16_t y_start)
 {
 	const uint16_t x = 10;
-	const uint16_t line_offset = font_get_height(font)+2;
+	const uint16_t line_offset = font_get_height(font)+10;
+	printf("offset_per_line= %d\n", line_offset);
 	graphx_draw_hline(gfx_data, 0, y_start, gfx_data->width-1, GRAPHX_COLOR_BLACK);
-
 	y_start += 5;
 
 
@@ -80,8 +82,9 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 
 	uint16_t y = 10;
 
-	y = draw_font_atlas(gfx_data, font5x7, y);
-	y = draw_font_atlas(gfx_data, font3x5, y);
+	y = draw_font_atlas(gfx_data, font3x5,   y);
+	y = draw_font_atlas(gfx_data, font5x7,   y);
+	y = draw_font_atlas(gfx_data, font10x14, y);
 }
 
 static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx_data)
