@@ -14,10 +14,10 @@
 #include "util_paths.h"
 
 #include "util_strings.h"
+#include "util_makros.h"
 
-
-#if 1
-	#define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__) 
+#if 0
+	#define DEBUG_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 	#define DEBUG_PRINTF(...)
 #endif
@@ -25,11 +25,14 @@
 struct atlas_info {
 	int char_width;
 	int char_height;
-	int char_columns;
-	int char_rows;
+	int chars_per_col;
+	int chars_per_row;
 	int img_width;
 	int img_height;
 	uint8_t *img_data;
+	int height_bytes_per_char;
+	int width_bytes_per_char;
+	int index_offset_per_char;
 };
 
 struct font_data {
@@ -54,67 +57,58 @@ static bool img_is_pixel_set(const struct atlas_info *info, int x, int y, const 
 	}
 }
 
-static void font_set_pixel_of_char(
-		const struct atlas_info *atlas,
-		struct font_data *fdata,
-		int col,
-		int row,
-		int x,
-		int y)
-{
-	//FIXME: y is not correctly handled for char width a height more than
-	// one byte
-#if 1
-	const int start_index = (atlas->char_width * col) + (atlas->char_columns * atlas->char_width * row);
-	const int y_bit       = y % 8;
 
-	const size_t index = start_index+x;
+static void font_set_pixel_of_char(const struct atlas_info *atlas,
+		struct font_data *fdata,
+		size_t char_index,
+		int char_x,
+		int char_y)
+{
+	const int    y_bit            = char_y % 8;
+	const int    offset_y_index   = (char_y / 8) * atlas->width_bytes_per_char;
+	const size_t index = char_index + char_x + offset_y_index;
+
 	assert(index < fdata->len);
 	fdata->data[index] |= (1 << y_bit);
-#else
-	////const int height_bytes_per_char = (y / 8) + 1;
-	//const int width_bytes_per_char  = atlas->char_width;
-	//const int y_bit       = y % 8;
-
-	//const size_t start_index = row * col * atlas->char_columns;
-
-
-	//const size_t row_offset = row * width_bytes_per_char;
-/*	//const size_t start_index = row_offset + 
-	//	(atlas->char_width * col) + 
-	//	(info->char_columns * info->char_width * row * height_byte) +
-	//	x;*/
-
-	//const size_t index = start_index+row_offset+x;
-	//assert(index < fdata->len);
-	//fdata->data[index] |= (1 << y_bit);
-#endif
 }
 
+static size_t get_font_data_index_of_char(
+		const struct atlas_info *atlas,
+		int char_col_index,
+		int char_row_index
+		)
+{
+	return (char_row_index * (atlas->chars_per_col* atlas->index_offset_per_char))
+		+ (char_col_index * atlas->index_offset_per_char);
+
+}
 
 static void parse_char(
 		const struct atlas_info *atlas,
 		struct font_data *fdata,
-		int col,
-		int row,
-		int x_start,
-		int y_start)
+		int char_col_index,
+		int char_row_index,
+		int img_x_start,
+		int img_y_start)
 {
-	assert(x_start > 0);
-	assert(y_start > 0);
+	assert(img_x_start > 0);
+	assert(img_y_start > 0);
 	assert(atlas->char_width  > 0);
 	assert(atlas->char_height > 0);
 	assert(atlas->img_data != NULL);
 	assert(fdata->data     != NULL);
 
-	DEBUG_PRINTF("parse_char: x=%03d y=%03d\n", x_start, y_start);
 
-	for (int y=0; y < atlas->char_height; ++y) {
+	size_t char_index = get_font_data_index_of_char(atlas, char_col_index, char_row_index);
+
+	DEBUG_PRINTF("\nparse_char: x=%03d y=%03d | col=%03d row=%03d | index=%03zu\n", img_x_start, img_y_start, char_col_index, char_row_index, font_index);
+
+	for (int char_y=0; char_y < atlas->char_height; ++char_y) {
 		DEBUG_PRINTF("|");
-		for (int x=0; x < atlas->char_width; ++x) {
-			if (img_is_pixel_set(atlas, x_start+x, y_start+y, atlas->img_data)) {
+		for (int char_x=0; char_x < atlas->char_width; ++char_x) {
+			if (img_is_pixel_set(atlas, img_x_start+char_x, img_y_start+char_y, atlas->img_data)) {
 				DEBUG_PRINTF("#");
-				font_set_pixel_of_char(atlas, fdata, col, row, x, y);
+				font_set_pixel_of_char(atlas, fdata, char_index, char_x, char_y);
 			}
 			else {
 				DEBUG_PRINTF(" ");
@@ -126,7 +120,7 @@ static void parse_char(
 
 static Result write_font_file(
 		const struct atlas_info *atlas,
-		const struct font_data  *fdata,
+		const struct font_data *fdata,
 		const char *output_file
 		)
 {
@@ -158,7 +152,7 @@ static Result write_font_file(
 
 	for (size_t i=0; i < fdata->len; ++i) {
 		if ((i % atlas->char_width) == 0 && (i != 0)) {
-			fprintf(f, "\n\t");
+			fprintf(f, " // %zu\n\t", i);
 		}
 		else if (i == 0) {
 			fprintf(f, "\t");
@@ -207,23 +201,31 @@ Result atlas_parser(
 	}
 
 	const struct atlas_info atlas = {
-		.char_columns = (img_width  - border_width) / (char_width  + border_width),
-		.char_rows    = (img_height - border_width) / (char_height + border_width),
-		.char_width   = char_width,
-		.char_height  = char_height,
-		.img_width    = img_width,
-		.img_height   = img_height,
-		.img_data     = img_data
+		.chars_per_col = (img_width  - border_width) / (char_width  + border_width),
+		.chars_per_row = (img_height - border_width) / (char_height + border_width),
+		.char_width    = char_width,
+		.char_height   = char_height,
+		.img_width     = img_width,
+		.img_height    = img_height,
+		.img_data      = img_data,
+		.height_bytes_per_char = (char_height/ 8) + 1,
+		.width_bytes_per_char  = char_width,
+		.index_offset_per_char = atlas.width_bytes_per_char * atlas.height_bytes_per_char
 	};
 
 	struct font_data fdata = {
-		.data = NULL,
-		.len  = atlas.char_columns * atlas.char_rows * atlas.char_height * atlas.char_width
+		.data   = NULL,
+		.len    = atlas.chars_per_col* atlas.chars_per_row * atlas.height_bytes_per_char * atlas.width_bytes_per_char
 	};
 
-	printf("DEBUG: parsing atlas, calculated char_columns=%d char_rows=%d\n", 
-		atlas .char_columns, atlas.char_rows);
-	
+	printf("DEBUG: parsing atlas, calculated values:\n"
+		"char_columns = %d\n"
+		"char_rows    = %d\n"
+		"height_bytes_per_char = %d\n"
+		"width_bytes_per_char  = %d\n",
+		atlas.chars_per_col, atlas.chars_per_row,
+		atlas.height_bytes_per_char, atlas.width_bytes_per_char);
+
 	printf("DEBUG: allocated font: size=%zu\n", fdata.len);
 
 	fdata.data = (uint8_t*) malloc(fdata.len);
@@ -234,10 +236,10 @@ Result atlas_parser(
 
 	memset(fdata.data, 0, fdata.len);
 
-	for (int row=0; row < atlas.char_rows; ++row) {
+	for (int row=0; row < atlas.chars_per_row; ++row) {
 		const int y_start = border_width + (row * (char_height + border_width));
 
-		for (int col=0; col <  atlas.char_columns; ++col) {
+		for (int col=0; col <  atlas.chars_per_col; ++col) {
 			const int x_start = border_width + (col * (char_width + border_width));
 
 			parse_char(&atlas, &fdata, col, row, x_start, y_start);

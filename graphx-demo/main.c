@@ -42,7 +42,8 @@ static uint16_t draw_font_atlas(
 		uint16_t y_start)
 {
 	const uint16_t x = 10;
-	const uint16_t line_offset = font_get_height(font)+10;
+	const uint16_t line_offset = font_get_height(font)+1;
+
 	printf("offset_per_line= %d\n", line_offset);
 	graphx_draw_hline(gfx_data, 0, y_start, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 	y_start += 5;
@@ -63,7 +64,7 @@ static uint16_t draw_font_atlas(
 	graphx_draw_string(gfx_data, font, x, y_start, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
 
 	y_start += line_offset;
-	graphx_draw_string(gfx_data, font, x, y_start, "pqrstuvwxyz{|}~ ", GRAPHX_COLOR_BLACK);
+	graphx_draw_string(gfx_data, font, x, y_start, "pqrstuvwxyz{|}~", GRAPHX_COLOR_BLACK);
 
 	y_start += line_offset;
 	y_start +=5;

@@ -10,6 +10,14 @@
 
 #define GRAPHX_BUFFER_SIZE(width,height)   (width * height / 8)
 
+#if 1
+    #include <stdio.h>
+    #define GRAPHX_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+	#define GRAPHX_PRINTF(...)
+#endif
+
+
 struct graphx_data {
 	uint8_t *buffer;
 	uint16_t buffer_size;
@@ -55,10 +63,14 @@ void graphx_draw_string(struct graphx_data *data,const uint8_t *font, uint16_t x
 #include "font.h"
 
 static void graphx_draw_byte(struct graphx_data *data, uint16_t x, uint16_t y,
-	uint8_t byte, enum graphx_color fg_color, enum graphx_color bg_color)
+	uint8_t byte, uint8_t bit_count, enum graphx_color fg_color, enum graphx_color bg_color)
 {
-	for (uint8_t j = 0; j < 8; j++) {
+	for (uint8_t j = 0; j < bit_count; j++) {
 		enum graphx_color color = (byte & (1 << j)) ? fg_color : bg_color;
+
+		if (color == fg_color) {
+			GRAPHX_PRINTF("draw_pixel: x=%03d y=%03d\n", x, y+j);
+		}
 		graphx_draw_pixel(data, x, y + j, color);
 	}
 }
@@ -126,6 +138,8 @@ void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum gr
 
 	const uint8_t  y_bit  = y % 8;
 	const uint16_t offset = graphx_get_buffer_offset(data, x, y);
+
+	assert(offset < data->buffer_size);
 
 	switch(color) {
 
@@ -195,24 +209,41 @@ void graphx_draw_char(
 	const uint8_t font_height = font_get_height(font);
 
 	const uint16_t height_bytes_per_char = (font_height / 8) + 1;
+	//const uint16_t height_bits_per_char  = height_bytes_per_char * 8;
 	const uint16_t width_bytes_per_char  = font_width;
 
 	uint8_t  char_index  = (uint8_t)(c - 0x20);
 	uint16_t start_index = char_index * width_bytes_per_char * height_bytes_per_char;
 
+
+	GRAPHX_PRINTF("drawing char '%c'\n", c);
 	for (uint16_t row = 0; row < height_bytes_per_char; row++) {
 
-		uint16_t row_offset = row * width_bytes_per_char;
+		uint16_t row_offset          = row * width_bytes_per_char;
+		uint16_t y_offset            = row * 8;
+		uint16_t height_bits_to_draw = 8;
+
+		if (y_offset+8 > font_height) {
+			height_bits_to_draw = font_height % 8;
+		}
 
 		for (uint16_t col= 0; col < width_bytes_per_char; col++) {
 
-			uint16_t i_new = start_index + row_offset + col;
-
-			uint16_t  x_new = x + col;
-			uint16_t  y_new = y + (row * 8);
-
-			graphx_draw_byte(data, x_new, y_new,
-				font_get_byte(font, i_new), fg_color, bg_color);
+			size_t font_byte_index = start_index + row_offset + col;
+#if 0
+			GRAPHX_PRINTF("char=%c width=%02d height=%02d row_offset=%03d y_offset=%03d height_bits_to_draw=%03d "
+					"index=%zu x=%03d y=%03d\n",
+				c, font_width, font_height, (int)row_offset, (int)y_offset, (int)height_bits_to_draw, 
+				font_byte_index, x, y);
+#endif
+			graphx_draw_byte(
+				data,
+				x + col,
+				y + y_offset,
+				font_get_byte(font, font_byte_index),
+				height_bits_to_draw,
+				fg_color,
+				bg_color);
 		}
 	}
 }
