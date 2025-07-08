@@ -10,19 +10,25 @@
 
 #define GRAPHX_BUFFER_SIZE(width,height)   (width * height / 8)
 
-#if 0
-    #include <stdio.h>
-    #define GRAPHX_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#ifdef GRAPHX_ENABLE_DEBUG
+	#include <stdio.h>
+	#define GRAPHX_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
 	#define GRAPHX_PRINTF(...)
 #endif
 
+
+enum graphx_orientation {
+	GRAPHX_ORIENTATION_VERTICAL,
+	GRAPHX_ORIENTATION_HORIZONTAL
+};
 
 struct graphx_data {
 	uint8_t *buffer;
 	uint16_t buffer_size;
 	uint16_t width;
 	uint16_t height;
+	enum graphx_orientation orientation;
 };
 
 enum graphx_color {
@@ -35,7 +41,9 @@ enum graphx_error {
 	GRAPHX_ERROR_OK,
 	GRAPHX_ERROR_NULLPTR,
 	GRAPHX_ERROR_BUFFER_NULL,
-	GRAPHX_ERROR_INVALID_BUFFER_SIZE
+	GRAPHX_ERROR_INVALID_BUFFER_SIZE,
+	GRAPHX_ERROR_WIDTH_NO_MULTIPLE_OF_8,
+	GRAPHX_ERROR_HEIGHT_NO_MULTIPLE_OF_8,
 };
 
 
@@ -77,10 +85,38 @@ static void graphx_draw_byte(struct graphx_data *data, uint16_t x, uint16_t y,
 }
 
 
+static uint8_t graphx_get_bitmask(const struct graphx_data *data, uint16_t x, uint16_t y)
+{
+	assert(x < data->width);
+	assert(y < data->height);
+
+	switch(data->orientation) {
+		case GRAPHX_ORIENTATION_VERTICAL  : (void)x; return (y%8);
+		case GRAPHX_ORIENTATION_HORIZONTAL: (void)y; return (x%8);
+	};
+}
+
 static uint16_t graphx_get_buffer_offset(const struct graphx_data *data, uint16_t x, uint16_t y)
 {
-	const uint16_t offset = x + (y / 8u) * data->width;
-	return (offset > data->buffer_size) ? data->buffer_size: offset;
+	assert(x < data->width);
+	assert(y < data->height);
+
+	uint16_t offset = UINT16_MAX;
+
+	switch(data->orientation) {
+		case GRAPHX_ORIENTATION_VERTICAL:
+			offset = x + (y / 8u) * data->width;
+			break;
+		case GRAPHX_ORIENTATION_HORIZONTAL:
+			offset = (x/8u) + y * (data->width/8);
+			break;
+		default:
+			assert(false);
+			break;
+	}
+
+	assert(offset < data->buffer_size);
+	return offset;
 }
 
 
@@ -88,6 +124,12 @@ enum graphx_error graphx_verify(const struct graphx_data *data)
 {
 	if (data == NULL) {
 		return GRAPHX_ERROR_NULLPTR;
+	}
+	if (data->width % 8 != 0) {
+		return GRAPHX_ERROR_WIDTH_NO_MULTIPLE_OF_8;
+	}
+	if (data->height% 8 != 0) {
+		return GRAPHX_ERROR_HEIGHT_NO_MULTIPLE_OF_8;
 	}
 	if (data->buffer == NULL) {
 		return GRAPHX_ERROR_BUFFER_NULL;
@@ -126,10 +168,10 @@ void graphx_fill(struct graphx_data *data, enum graphx_color color)
 
 enum graphx_color graphx_get_pixel(const struct graphx_data *data, uint16_t x, uint16_t y)
 {
-	const uint8_t  y_bit  = y % 8;
+	const uint8_t  bmask  = graphx_get_bitmask(data, x, y);
 	const uint16_t offset = graphx_get_buffer_offset(data, x, y);
 
-	return (data->buffer[offset] & (1 << y_bit)) ? GRAPHX_COLOR_BLACK : GRAPHX_COLOR_WHITE;
+	return (data->buffer[offset] & (1 << bmask)) ? GRAPHX_COLOR_BLACK : GRAPHX_COLOR_WHITE;
 }
 
 void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum graphx_color color)
@@ -137,23 +179,21 @@ void graphx_draw_pixel(struct graphx_data *data, uint16_t x, uint16_t y, enum gr
 	assert(x < data->width);
 	assert(y < data->height);
 
-	const uint8_t  y_bit  = y % 8;
+	const uint8_t  bmask  = graphx_get_bitmask(data, x, y);
 	const uint16_t offset = graphx_get_buffer_offset(data, x, y);
-
-	assert(offset < data->buffer_size);
 
 	switch(color) {
 
 	case GRAPHX_COLOR_BLACK:
-		data->buffer[offset] |= (1u << y_bit);
+		data->buffer[offset] |= (1u << bmask);
 		break;
 
 	case GRAPHX_COLOR_WHITE:
-		data->buffer[offset] &= ~(1u << y_bit);
+		data->buffer[offset] &= ~(1u << bmask);
 		break;
 
 	case GRAPHX_COLOR_TOGGLE:
-		data->buffer[offset] ^= (1u << y_bit);
+		data->buffer[offset] ^= (1u << bmask);
 		break;
 	}
 }
@@ -224,7 +264,7 @@ void graphx_draw_symbol(struct graphx_data *data,const uint8_t *font, uint16_t x
 #if 0
 			GRAPHX_PRINTF("char=%c width=%02d height=%02d row_offset=%03d y_offset=%03d height_bits_to_draw=%03d "
 					"index=%zu x=%03d y=%03d\n",
-				c, font_width, font_height, (int)row_offset, (int)y_offset, (int)height_bits_to_draw, 
+				c, font_width, font_height, (int)row_offset, (int)y_offset, (int)height_bits_to_draw,
 				font_byte_index, x, y);
 #endif
 			graphx_draw_byte(

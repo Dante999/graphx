@@ -11,9 +11,6 @@
 #include "graphx/font5x7.h"
 #include "graphx/font10x14.h"
 
-// Define MAX and MIN macros
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 // Define screen dimensions
 #define GFX_WIDTH   400
@@ -86,7 +83,6 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 
 	const uint16_t x_start = 10;
 	uint16_t y = 10;
-
 	y = draw_font_atlas(gfx_data, font3x5,   x_start, y);
 	y = draw_font_atlas(gfx_data, font5x7,   x_start, y);
 	y = draw_font_atlas(gfx_data, font10x14, x_start, y);
@@ -94,7 +90,7 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 
 static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx_data)
 {
-	SDL_SetRenderDrawColor(renderer, 0x2F, 0x0F, 0x0F, 0xFF);
+	SDL_SetRenderDrawColor(renderer, 0x00, 0x00, 0xFF, 0xFF);
 
 	for (uint16_t x=0; x < gfx_data->width; ++x) {
 		for (uint16_t y=0; y < gfx_data->height; ++y) {
@@ -116,7 +112,8 @@ int main(int argc, char* argv[])
 		.buffer      = gfx_buffer,
 		.buffer_size = sizeof(gfx_buffer),
 		.width       = GFX_WIDTH,
-		.height      = GFX_HEIGHT
+		.height      = GFX_HEIGHT,
+		.orientation = GRAPHX_ORIENTATION_VERTICAL
 	};
 
 	set_graphx_buffer_content(&gfx_data);
