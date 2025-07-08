@@ -149,6 +149,8 @@ static Result write_font_file(
 
 	fprintf(f, "\t%d, // font width\n", atlas->char_width);
 	fprintf(f, "\t%d, // font height\n", atlas->char_height);
+	fprintf(f, "\t0x%02X, // data len high byte\n", (uint8_t)(fdata->len >> 8) & 0xFF);
+	fprintf(f, "\t0x%02X, // data len low byte\n", (uint8_t)(fdata->len >> 0) & 0xFF);
 
 	for (size_t i=0; i < fdata->len; ++i) {
 		if ((i % atlas->char_width) == 0 && (i != 0)) {
@@ -158,7 +160,7 @@ static Result write_font_file(
 			fprintf(f, "\t");
 		}
 
-		fprintf(f, "0x%02x, ", (int) fdata->data[i]);
+		fprintf(f, "0x%02X, ", (int) fdata->data[i]);
 
 	}
 

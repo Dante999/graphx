@@ -26,7 +26,6 @@
 #define SCREEN_HEIGHT   (GFX_HEIGHT * RENDER_SCALE)
 
 
-#define INC_Y(Y, FONT_HEIGHT) (Y += FONT_HEIGHT +10)
 static void check_sdl(int sdl_error)
 {
 	if (sdl_error != 0) {
@@ -39,39 +38,44 @@ static void check_sdl(int sdl_error)
 static uint16_t draw_font_atlas(
 		struct graphx_data *gfx_data,
 		const uint8_t *font,
-		uint16_t y_start)
+		const uint16_t x_start,
+		const uint16_t y_start)
 {
-	const uint16_t x = 10;
-	const uint16_t line_offset = font_get_height(font)+1;
+	size_t char_width      = font_get_width(font);
+	size_t char_height     = font_get_height(font);
+	size_t font_array_len  = font_get_data_len(font);
+	printf("char_width=%zu char_height=%zu data_len=%zu\n",
+		char_width, char_height, font_array_len);
 
-	printf("offset_per_line= %d\n", line_offset);
-	graphx_draw_hline(gfx_data, 0, y_start, gfx_data->width-1, GRAPHX_COLOR_BLACK);
-	y_start += 5;
+	size_t offset_per_char = char_width * (char_height / 8 + 1);
 
+	uint16_t x = x_start;
+	uint16_t y = y_start;
 
-	graphx_draw_string(gfx_data, font, x, y_start, " !\"#$%&'()*+,-./", GRAPHX_COLOR_BLACK);
+	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
+	y += 5;
 
-	y_start += line_offset;
-	graphx_draw_string(gfx_data, font, x, y_start, "0123456789:;<=>?", GRAPHX_COLOR_BLACK);
+	size_t symbol_count = font_array_len/offset_per_char;
+	assert(symbol_count < 255);
 
-	y_start += line_offset;
-	graphx_draw_string(gfx_data, font, x, y_start, "@ABCDEFGHIJKLMNO", GRAPHX_COLOR_BLACK);
+	x = x_start;
+	for (size_t i=0; i< symbol_count; ++i) {
+		printf("demo: drawing symbol with index=%03zu at x=%03d y=%03d\n", i, x, y);
+		graphx_draw_symbol(gfx_data, font, x, y, (char)i, GRAPHX_COLOR_BLACK);
+		x += char_width+1;
 
-	y_start += line_offset;
-	graphx_draw_string(gfx_data, font, x, y_start, "PQRSTUVWXYZ[\\]^_", GRAPHX_COLOR_BLACK);
+		if ( (i+1) % 16 == 0) {
+			printf("demo: -> new row\n");
+			x = x_start;
+			y += char_height+1;
+		}
+	}
 
-	y_start += line_offset;
-	graphx_draw_string(gfx_data, font, x, y_start, "`abcdefghijklmno", GRAPHX_COLOR_BLACK);
+	y += char_height+5;
 
-	y_start += line_offset;
-	graphx_draw_string(gfx_data, font, x, y_start, "pqrstuvwxyz{|}~", GRAPHX_COLOR_BLACK);
+	graphx_draw_hline(gfx_data, 0, y, gfx_data->width-1, GRAPHX_COLOR_BLACK);
 
-	y_start += line_offset;
-	y_start +=5;
-
-	graphx_draw_hline(gfx_data, 0, y_start, gfx_data->width-1, GRAPHX_COLOR_BLACK);
-
-	return y_start;
+	return y;
 }
 
 static void set_graphx_buffer_content(struct graphx_data *gfx_data)
@@ -80,12 +84,12 @@ static void set_graphx_buffer_content(struct graphx_data *gfx_data)
 
 	graphx_draw_rect(gfx_data, 0, 0, gfx_data->width-1, gfx_data->height-1, GRAPHX_COLOR_BLACK);
 
-
+	const uint16_t x_start = 10;
 	uint16_t y = 10;
 
-	y = draw_font_atlas(gfx_data, font3x5,   y);
-	y = draw_font_atlas(gfx_data, font5x7,   y);
-	y = draw_font_atlas(gfx_data, font10x14, y);
+	y = draw_font_atlas(gfx_data, font3x5,   x_start, y);
+	y = draw_font_atlas(gfx_data, font5x7,   x_start, y);
+	y = draw_font_atlas(gfx_data, font10x14, x_start, y);
 }
 
 static void render_graphx_buffer(SDL_Renderer *renderer, struct graphx_data *gfx_data)

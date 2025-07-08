@@ -10,7 +10,7 @@
 
 #define GRAPHX_BUFFER_SIZE(width,height)   (width * height / 8)
 
-#if 1
+#if 0
     #include <stdio.h>
     #define GRAPHX_PRINTF(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else
@@ -49,6 +49,7 @@ void graphx_draw_hline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_
 void graphx_draw_vline(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t height, enum graphx_color color);
 void graphx_draw_rect(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t width, uint16_t height, enum graphx_color color);
 void graphx_draw_char(struct graphx_data *data,const uint8_t *font, uint16_t x, uint16_t y, char c, enum graphx_color color);
+void graphx_draw_symbol(struct graphx_data *data,const uint8_t *font, uint16_t x, uint16_t y, char index, enum graphx_color color);
 void graphx_draw_string(struct graphx_data *data,const uint8_t *font, uint16_t x, uint16_t y, const char *s, enum graphx_color color);
 
 
@@ -180,13 +181,7 @@ void graphx_draw_rect(struct graphx_data *data, uint16_t x, uint16_t y, uint16_t
 }
 
 
-void graphx_draw_char(
-	struct graphx_data *data,
-	const uint8_t *font,
-	uint16_t x,
-	uint16_t y,
-	char c,
-	enum graphx_color color)
+void graphx_draw_symbol(struct graphx_data *data,const uint8_t *font, uint16_t x, uint16_t y, char index, enum graphx_color color)
 {
 	enum graphx_color fg_color = GRAPHX_COLOR_BLACK;
 	enum graphx_color bg_color = GRAPHX_COLOR_WHITE;
@@ -209,14 +204,10 @@ void graphx_draw_char(
 	const uint8_t font_height = font_get_height(font);
 
 	const uint16_t height_bytes_per_char = (font_height / 8) + 1;
-	//const uint16_t height_bits_per_char  = height_bytes_per_char * 8;
 	const uint16_t width_bytes_per_char  = font_width;
 
-	uint8_t  char_index  = (uint8_t)(c - 0x20);
-	uint16_t start_index = char_index * width_bytes_per_char * height_bytes_per_char;
+	const uint16_t start_index = index * width_bytes_per_char * height_bytes_per_char;
 
-
-	GRAPHX_PRINTF("drawing char '%c'\n", c);
 	for (uint16_t row = 0; row < height_bytes_per_char; row++) {
 
 		uint16_t row_offset          = row * width_bytes_per_char;
@@ -240,12 +231,23 @@ void graphx_draw_char(
 				data,
 				x + col,
 				y + y_offset,
-				font_get_byte(font, font_byte_index),
+				font_get_data_byte(font, font_byte_index),
 				height_bits_to_draw,
 				fg_color,
 				bg_color);
 		}
 	}
+}
+
+void graphx_draw_char(
+	struct graphx_data *data,
+	const uint8_t *font,
+	uint16_t x,
+	uint16_t y,
+	char c,
+	enum graphx_color color)
+{
+	graphx_draw_symbol(data, font, x, y, (c - 0x20), color);
 }
 
 void graphx_draw_string(

@@ -1,4 +1,4 @@
 /test/graphx_tests
 *.swp
-/sdl-demo/graphx-demo
+/graphx-demo/graphx-demo
 /font-generator/font-generator
